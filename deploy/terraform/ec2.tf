@@ -88,7 +88,7 @@ resource "aws_security_group" "explore311security" {
 
 resource "aws_instance" "explore311" {
   ami           = "${data.aws_ami.ubuntu.id}"
-  instance_type = "t2.small"
+  instance_type = "t2.medium"
   key_name      = "ross-key"
 
   security_groups = [
@@ -100,6 +100,29 @@ resource "aws_instance" "explore311" {
   root_block_device {
     volume_size = 20
   }
+
+  user_data = <<EOF
+#!/bin/bash
+apt update
+apt install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+apt-key fingerprint 0EBFCD88
+add-apt-repository -y \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+apt update
+apt install -y docker-ce
+usermod -aG docker ubuntu
+git clone https://github.com/BossColo/Explore311 /home/ubuntu/Explore311
+chmod -R 777 /home/ubuntu/Explore311
+docker build -t explore311 /home/ubuntu/Explore311/deploy/docker/
+docker run -d -p 80:8888 -v /home/ubuntu/Explore311:/home/jovyan/Explore311 --rm --name jupyter explore311
+EOF
 
   tags {
     Name = "Explore311"
